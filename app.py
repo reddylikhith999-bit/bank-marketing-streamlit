@@ -1,13 +1,10 @@
-import streamlit as st
-import pandas as pd
+import os
 import pickle
-
+import pandas as pd
+import streamlit as st
 
 # Page title
-st.set_page_config(
-    page_title="Bank Marketing Prediction",
-    page_icon="🏦"
-)
+st.set_page_config(page_title="Bank Marketing Prediction", page_icon="🏦")
 
 # Title
 st.title("🏦 Bank Marketing Campaign Prediction")
@@ -15,9 +12,12 @@ st.title("🏦 Bank Marketing Campaign Prediction")
 st.write("Enter customer details to predict the campaign result.")
 
 
-# Load trained model
+# Load trained model safely using relative path
 try:
-    with open("model.pkl", "rb") as file:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    model_path = os.path.join(BASE_DIR, "model.pkl")
+
+    with open(model_path, "rb") as file:
         model = pickle.load(file)
 
     st.success("Model loaded successfully!")
@@ -29,12 +29,7 @@ except Exception as e:
 
 
 # Customer inputs
-age = st.number_input(
-    "Age",
-    min_value=18,
-    max_value=100,
-    value=30
-)
+age = st.number_input("Age", min_value=18, max_value=100, value=30)
 
 job = st.selectbox(
     "Job",
@@ -50,87 +45,56 @@ job = st.selectbox(
         "student",
         "technician",
         "unemployed",
-        "unknown"
-    ]
+        "unknown",
+    ],
 )
 
-marital = st.selectbox(
-    "Marital Status",
-    ["married", "single", "divorced"]
-)
+marital = st.selectbox("Marital Status", ["married", "single", "divorced"])
 
 education = st.selectbox(
-    "Education",
-    ["primary", "secondary", "tertiary", "unknown"]
+    "Education", ["primary", "secondary", "tertiary", "unknown"]
 )
 
-default = st.selectbox(
-    "Credit Default?",
-    ["no", "yes"]
-)
+default = st.selectbox("Credit Default?", ["no", "yes"])
 
-balance = st.number_input(
-    "Balance",
-    value=1000
-)
+balance = st.number_input("Balance", value=1000)
 
-housing = st.selectbox(
-    "Housing Loan?",
-    ["no", "yes"]
-)
+housing = st.selectbox("Housing Loan?", ["no", "yes"])
 
-loan = st.selectbox(
-    "Personal Loan?",
-    ["no", "yes"]
-)
+loan = st.selectbox("Personal Loan?", ["no", "yes"])
 
-contact = st.selectbox(
-    "Contact",
-    ["cellular", "telephone", "unknown"]
-)
+contact = st.selectbox("Contact", ["cellular", "telephone", "unknown"])
 
-day = st.number_input(
-    "Contact Day",
-    min_value=1,
-    max_value=31,
-    value=15
-)
+day = st.number_input("Contact Day", min_value=1, max_value=31, value=15)
 
 month = st.selectbox(
     "Month",
     [
-        "jan", "feb", "mar", "apr",
-        "may", "jun", "jul", "aug",
-        "sep", "oct", "nov", "dec"
-    ]
+        "jan",
+        "feb",
+        "mar",
+        "apr",
+        "may",
+        "jun",
+        "jul",
+        "aug",
+        "sep",
+        "oct",
+        "nov",
+        "dec",
+    ],
 )
 
-duration = st.number_input(
-    "Call Duration",
-    min_value=0,
-    value=300
-)
+duration = st.number_input("Call Duration", min_value=0, value=300)
 
-campaign = st.number_input(
-    "Campaign Contacts",
-    min_value=1,
-    value=1
-)
+campaign = st.number_input("Campaign Contacts", min_value=1, value=1)
 
-pdays = st.number_input(
-    "Days Since Previous Contact",
-    value=-1
-)
+pdays = st.number_input("Days Since Previous Contact", value=-1)
 
-previous = st.number_input(
-    "Previous Contacts",
-    min_value=0,
-    value=0
-)
+previous = st.number_input("Previous Contacts", min_value=0, value=0)
 
 poutcome = st.selectbox(
-    "Previous Campaign Outcome",
-    ["unknown", "failure", "other", "success"]
+    "Previous Campaign Outcome", ["unknown", "failure", "other", "success"]
 )
 
 
@@ -154,7 +118,7 @@ if st.button("🔮 Predict"):
         "campaign": [campaign],
         "pdays": [pdays],
         "previous": [previous],
-        "poutcome": [poutcome]
+        "poutcome": [poutcome],
     })
 
     # Make prediction
@@ -165,7 +129,6 @@ if st.button("🔮 Predict"):
 
         if str(result).lower() == "yes":
             st.success("🎉 Customer is likely to subscribe!")
-
         else:
             st.warning("❌ Customer is unlikely to subscribe!")
 
