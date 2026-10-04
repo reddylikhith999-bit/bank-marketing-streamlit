@@ -5,6 +5,8 @@
 import streamlit as st
 import pandas as pd
 import pickle
+import os
+from sklearn.ensemble import RandomForestClassifier
 
 
 # ============================================
@@ -33,25 +35,50 @@ st.divider()
 
 
 # ============================================
-# LOAD MODEL
+# LOAD OR AUTO-TRAIN MODEL
 # ============================================
 
+@st.cache_resource
+def load_or_train_model():
+    model_path = "model.pkl"
+    
+    # If model doesn't exist, train it automatically using train.csv
+    if not os.path.exists(model_path):
+        try:
+            df = pd.read_csv("train.csv")
+            target_col = 'y' if 'y' in df.columns else df.columns[-1]
+            
+            X = df.drop(columns=[target_col])
+            y = df[target_col]
+            
+            # Preprocess categorical features
+            X_encoded = pd.get_dummies(X)
+            
+            # Train model
+            model = RandomForestClassifier(random_state=42)
+            model.fit(X_encoded, y)
+            
+            # Save model and columns together for consistency
+            with open(model_path, "wb") as file:
+                pickle.dump((model, X_encoded.columns.tolist()), file)
+        except Exception as e:
+            st.error(f"Error training model automatically: {e}")
+            st.stop()
+
+    # Load the model and columns
+    with open(model_path, "rb") as file:
+        data = pickle.load(file)
+        if isinstance(data, tuple):
+            return data
+        else:
+            return data, None
+
 try:
-
-    # Open the saved Pickle file
-    with open("model.pkl", "rb") as file:
-
-        # Load the trained model
-        model = pickle.load(file)
-
+    model, model_columns = load_or_train_model()
     st.success("✅ Model loaded successfully!")
-
 except Exception as e:
-
-    st.error("❌ Could not load model.pkl")
-
+    st.error("❌ Could not load or train model.")
     st.write("Error:", e)
-
     st.stop()
 
 
@@ -61,10 +88,7 @@ except Exception as e:
 
 st.header("Customer Information")
 
-
-# Create two columns for better layout
 col1, col2 = st.columns(2)
-
 
 # ============================================
 # COLUMN 1
@@ -236,40 +260,28 @@ if st.button(
     # ========================================
 
     input_data = pd.DataFrame({
-
         "age": [age],
-
         "job": [job],
-
         "marital": [marital],
-
         "education": [education],
-
         "default": [default],
-
         "balance": [balance],
-
         "housing": [housing],
-
         "loan": [loan],
-
         "contact": [contact],
-
         "day": [day],
-
         "month": [month],
-
         "duration": [duration],
-
         "campaign": [campaign],
-
         "pdays": [pdays],
-
         "previous": [previous],
-
         "poutcome": [poutcome]
-
     })
+
+    # Encode input to match training features
+    input_encoded = pd.get_dummies(input_data)
+    if model_columns is not None:
+        input_encoded = input_encoded.reindex(columns=model_columns, fill_value=0)
 
 
     # ========================================
@@ -278,8 +290,7 @@ if st.button(
 
     try:
 
-        prediction = model.predict(input_data)
-
+        prediction = model.predict(input_encoded)
         result = prediction[0]
 
 
@@ -317,4 +328,3 @@ if st.button(
 
         st.write("Input data used by the model:")
         st.dataframe(input_data)
-
