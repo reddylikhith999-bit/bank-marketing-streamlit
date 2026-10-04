@@ -2,21 +2,18 @@
 # BANK MARKETING PREDICTION - STREAMLIT APP
 # ============================================
 
-import streamlit as st
-import pandas as pd
-import pickle
 import os
+import pickle
 from sklearn.ensemble import RandomForestClassifier
-
+import pandas as pd
+import streamlit as st
 
 # ============================================
 # PAGE SETTINGS
 # ============================================
 
 st.set_page_config(
-    page_title="Bank Marketing Prediction",
-    page_icon="🏦",
-    layout="wide"
+    page_title="Bank Marketing Prediction", page_icon="🏦", layout="wide"
 )
 
 
@@ -26,10 +23,7 @@ st.set_page_config(
 
 st.title("🏦 Bank Marketing Campaign Prediction")
 
-st.write(
-    "Enter the customer details below and click "
-    "**Predict** to get the result."
-)
+st.write("Enter the customer details below and click **Predict** to get the result.")
 
 st.divider()
 
@@ -38,21 +32,32 @@ st.divider()
 # LOAD OR AUTO-TRAIN MODEL
 # ============================================
 
+
 @st.cache_resource
 def load_or_train_model():
     model_path = "model.pkl"
-    
+
     # If model doesn't exist, train it automatically using train.csv
     if not os.path.exists(model_path):
         try:
-            df = pd.read_csv("train.csv")
+            try:
+                df = pd.read_csv("train.csv")
+                if len(df.columns) <= 1:
+                    df = pd.read_csv("train.csv", sep=";")
+            except Exception:
+                df = pd.read_csv("train.csv", sep=";")
+                
             target_col = 'y' if 'y' in df.columns else df.columns[-1]
             
             X = df.drop(columns=[target_col])
             y = df[target_col]
             
-            # Preprocess categorical features
-            X_encoded = pd.get_dummies(X)
+            # Safely encode categorical columns without concatenation errors
+            X_encoded = pd.get_dummies(X, drop_first=True)
+            
+            # If no categorical columns exist, use X as is
+            if X_encoded.empty:
+                X_encoded = X.copy()
             
             # Train model
             model = RandomForestClassifier(random_state=42)
@@ -72,6 +77,7 @@ def load_or_train_model():
             return data
         else:
             return data, None
+
 
 try:
     model, model_columns = load_or_train_model()
@@ -96,12 +102,7 @@ col1, col2 = st.columns(2)
 
 with col1:
 
-    age = st.number_input(
-        "Age",
-        min_value=18,
-        max_value=100,
-        value=30
-    )
+    age = st.number_input("Age", min_value=18, max_value=100, value=30)
 
     job = st.selectbox(
         "Job",
@@ -117,57 +118,23 @@ with col1:
             "student",
             "technician",
             "unemployed",
-            "unknown"
-        ]
+            "unknown",
+        ],
     )
 
-    marital = st.selectbox(
-        "Marital Status",
-        [
-            "married",
-            "single",
-            "divorced"
-        ]
-    )
+    marital = st.selectbox("Marital Status", ["married", "single", "divorced"])
 
     education = st.selectbox(
-        "Education",
-        [
-            "primary",
-            "secondary",
-            "tertiary",
-            "unknown"
-        ]
+        "Education", ["primary", "secondary", "tertiary", "unknown"]
     )
 
-    default = st.selectbox(
-        "Credit in Default?",
-        [
-            "no",
-            "yes"
-        ]
-    )
+    default = st.selectbox("Credit in Default?", ["no", "yes"])
 
-    balance = st.number_input(
-        "Account Balance",
-        value=1000
-    )
+    balance = st.number_input("Account Balance", value=1000)
 
-    housing = st.selectbox(
-        "Housing Loan?",
-        [
-            "no",
-            "yes"
-        ]
-    )
+    housing = st.selectbox("Housing Loan?", ["no", "yes"])
 
-    loan = st.selectbox(
-        "Personal Loan?",
-        [
-            "no",
-            "yes"
-        ]
-    )
+    loan = st.selectbox("Personal Loan?", ["no", "yes"])
 
 
 # ============================================
@@ -176,21 +143,9 @@ with col1:
 
 with col2:
 
-    contact = st.selectbox(
-        "Contact Type",
-        [
-            "cellular",
-            "telephone",
-            "unknown"
-        ]
-    )
+    contact = st.selectbox("Contact Type", ["cellular", "telephone", "unknown"])
 
-    day = st.number_input(
-        "Last Contact Day",
-        min_value=1,
-        max_value=31,
-        value=15
-    )
+    day = st.number_input("Last Contact Day", min_value=1, max_value=31, value=15)
 
     month = st.selectbox(
         "Last Contact Month",
@@ -206,41 +161,20 @@ with col2:
             "sep",
             "oct",
             "nov",
-            "dec"
-        ]
+            "dec",
+        ],
     )
 
-    duration = st.number_input(
-        "Call Duration (seconds)",
-        min_value=0,
-        value=300
-    )
+    duration = st.number_input("Call Duration (seconds)", min_value=0, value=300)
 
-    campaign = st.number_input(
-        "Number of Contacts",
-        min_value=1,
-        value=1
-    )
+    campaign = st.number_input("Number of Contacts", min_value=1, value=1)
 
-    pdays = st.number_input(
-        "Days Since Previous Contact",
-        value=-1
-    )
+    pdays = st.number_input("Days Since Previous Contact", value=-1)
 
-    previous = st.number_input(
-        "Previous Contacts",
-        min_value=0,
-        value=0
-    )
+    previous = st.number_input("Previous Contacts", min_value=0, value=0)
 
     poutcome = st.selectbox(
-        "Previous Campaign Outcome",
-        [
-            "unknown",
-            "failure",
-            "other",
-            "success"
-        ]
+        "Previous Campaign Outcome", ["unknown", "failure", "other", "success"]
     )
 
 
@@ -250,10 +184,7 @@ with col2:
 
 st.divider()
 
-if st.button(
-    "🔮 Predict Customer Response",
-    use_container_width=True
-):
+if st.button("🔮 Predict Customer Response", use_container_width=True):
 
     # ========================================
     # CREATE INPUT DATAFRAME
@@ -275,13 +206,14 @@ if st.button(
         "campaign": [campaign],
         "pdays": [pdays],
         "previous": [previous],
-        "poutcome": [poutcome]
+        "poutcome": [poutcome],
     })
 
-    input_encoded = pd.get_dummies(input_data)
+    input_encoded = pd.get_dummies(input_data, drop_first=True)
     if model_columns is not None:
-        input_encoded = input_encoded.reindex(columns=model_columns, fill_value=0)
-
+        input_encoded = input_encoded.reindex(
+            columns=model_columns, fill_value=0
+        )
 
     # ========================================
     # MAKE PREDICTION
@@ -292,32 +224,21 @@ if st.button(
         prediction = model.predict(input_encoded)
         result = prediction[0]
 
-
         # ====================================
         # DISPLAY RESULT
         # ====================================
 
         st.subheader("Prediction Result")
 
-
         if str(result).lower() == "yes":
 
-            st.success(
-                "🎉 Customer is likely to subscribe!"
-            )
+            st.success("🎉 Customer is likely to subscribe!")
 
         else:
 
-            st.warning(
-                "❌ Customer is unlikely to subscribe."
-            )
+            st.warning("❌ Customer is unlikely to subscribe.")
 
-
-        st.write(
-            "**Model Prediction:**",
-            result
-        )
-
+        st.write("**Model Prediction:**", result)
 
     except Exception as e:
 
